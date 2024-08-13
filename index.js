@@ -72,31 +72,56 @@ class Kamikaze {
         return this;
     }
 
-    static async get(url) {
+    innerText(text) {
+        this.element.innerText = text;
+        return this;
+    }
+    
+    remove(){
+        this.element.remove()
+    }
+
+    static async request(url, options = {}) {
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, options);
+            const contentType = response.headers.get("content-type");
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
+            
+            // レスポンスが JSON の場合はオブジェクトに変換
+            const data = contentType && contentType.includes("application/json") ? await response.json() : await response.text();
+            
+    
+            Kamikaze.emitAwaitEvent(false)
+            return data;
         } catch (error) {
+            
+            Kamikaze.emitAwaitEvent(false);
             throw error;
         }
     }
 
-    static async post(url, data) {
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            throw error;
-        }
+    static get(url, options = {}) {
+        Kamikaze.emitAwaitEvent(true);
+        return Kamikaze.request(url, { method: 'GET', ...options });
     }
+
+    static post(url, data, options = {}) {
+        Kamikaze.emitAwaitEvent(true)
+        return Kamikaze.request(url, {
+            method: 'POST',
+            body: data,
+            ...options
+        });
+    }
+
+    static emitAwaitEvent(isAwaiting) {
+        const event = new CustomEvent('awaitEvent', { detail: isAwaiting });
+        document.dispatchEvent(event);
+    }
+
 }
+
+// デフォルトで documentElement を使用可能にする
+Kamikaze.documentElement = new Kamikaze(document);
 
 export default Kamikaze;
