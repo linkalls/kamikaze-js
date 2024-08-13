@@ -1,1 +1,1 @@
-# kamikaze-js
+nova-js
