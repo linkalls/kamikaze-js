@@ -1,3 +1,76 @@
+class VirtualDOM {
+    constructor() {
+        this.root = null;
+    }
+
+    render(vnode, container) {
+        const newRoot = this.createElement(vnode);
+        if (this.root) {
+            this.update(this.root, newRoot, container);
+        } else {
+            container.appendChild(newRoot);
+        }
+        this.root = newRoot;
+    }
+
+    createElement(vnode) {
+        if (typeof vnode === 'string') {
+            return document.createTextNode(vnode);
+        }
+
+        const element = document.createElement(vnode.tagName);
+        Object.entries(vnode.attributes || {}).forEach(([key, value]) => {
+            element.setAttribute(key, value);
+        });
+
+        (vnode.children || []).forEach(child => {
+            element.appendChild(this.createElement(child));
+        });
+
+        return element;
+    }
+
+    update(oldVNode, newVNode, container) {
+        if (!this.isSameVNode(oldVNode, newVNode)) {
+            container.replaceChild(this.createElement(newVNode), oldVNode.element);
+            return;
+        }
+
+        const element = newVNode.element = oldVNode.element;
+        this.updateAttributes(element, oldVNode.attributes, newVNode.attributes);
+        this.updateChildren(element, oldVNode.children, newVNode.children);
+    }
+
+    isSameVNode(oldVNode, newVNode) {
+        return oldVNode && newVNode && oldVNode.tagName === newVNode.tagName;
+    }
+
+    updateAttributes(element, oldAttributes, newAttributes) {
+        Object.keys(oldAttributes || {}).forEach(key => {
+            if (!(key in newAttributes)) {
+                element.removeAttribute(key);
+            }
+        });
+
+        Object.entries(newAttributes || {}).forEach(([key, value]) => {
+            element.setAttribute(key, value);
+        });
+    }
+
+    updateChildren(element, oldChildren = [], newChildren = []) {
+        const maxLength = Math.max(oldChildren.length, newChildren.length);
+        for (let i = 0; i < maxLength; i++) {
+            this.update(
+                oldChildren[i] || { element: null },
+                newChildren[i] || { element: null },
+                element
+            );
+        }
+    }
+}
+
+const vdom = new VirtualDOM();
+
 class Nova {
     constructor(element) {
         this.element = element;
@@ -5,18 +78,20 @@ class Nova {
 
     static createElement(tagName, attributes = {}, ...children) {
         const element = document.createElement(tagName);
-        for (const [key, value] of Object.entries(attributes)) {
+        Object.entries(attributes).forEach(([key, value]) => {
             element.setAttribute(key, value);
-        }
+        });
+
         children.forEach(child => {
             if (typeof child === 'string') {
-                element.textContent = child;
-            } else if (child instanceof Node) {
-                element.appendChild(child);
+                element.appendChild(document.createTextNode(child));
             } else if (child instanceof Nova) {
                 element.appendChild(child.element);
+            } else if (child instanceof Node) {
+                element.appendChild(child);
             }
         });
+
         return new Nova(element);
     }
 
@@ -28,6 +103,11 @@ class Nova {
     static selectAll(selector) {
         const elements = document.querySelectorAll(selector);
         return Array.from(elements).map(element => new Nova(element));
+    }
+
+    static render(vnode, containerSelector) {
+        const container = document.querySelector(containerSelector);
+        vdom.render(vnode, container);
     }
 
     setStyle(property, value) {
@@ -52,6 +132,16 @@ class Nova {
 
     on(event, callback) {
         this.element.addEventListener(event, callback);
+        return this;
+    }
+
+    onDelegated(event, selector, callback) {
+        document.addEventListener(event, e => {
+            const targetElement = e.target.closest(selector);
+            if (targetElement && this.element.contains(targetElement)) {
+                callback.call(targetElement, e);
+            }
+        });
         return this;
     }
 
@@ -104,10 +194,19 @@ class Nova {
         return Nova.request(url, { method: 'GET', ...options });
     }
 
+    static post(url, data, options = {}) {
+        Nova.emitAwaitEvent(true);
+        return Nova.request(url, {
+            method: 'POST',
+            body: data,
+            ...options
+        });
+    }
+
     static emitAwaitEvent(isAwaiting) {
         const event = new CustomEvent('awaitEvent', { detail: isAwaiting });
         document.dispatchEvent(event);
     }
 }
 
-export default Nova;
+export { Nova, vdom };
