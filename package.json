@@ -1,0 +1,17 @@
+{
+  "name": "nova",
+  "version": "1.0.0",
+  "description": "nova-js",
+  "main": "vnova.js",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.23.1",
+    "glob": "^11.0.0"
+  }
+}

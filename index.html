@@ -1,39 +1,63 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kamikaze ライブラリデモ</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova vs Vanilla JS Benchmark</title>
+    <script type="module">
+        import Nova from './dist/vNovaDOM.js';
+
+        function benchmarkNova() {
+            const start = performance.now();
+            for (let i = 0; i < 1000; i++) {
+                const novaElement = new Nova('div');
+                novaElement.setAttribute('data-test', 'nova');
+                novaElement.setStyle('color', 'red');
+                novaElement.innerHTML('<span>{{text}}</span>');
+                novaElement.bindData({ text: 'Hello Nova' });
+                document.body.appendChild(novaElement.element);
+                novaElement.remove();
+            }
+            const end = performance.now();
+            return end - start;
+        }
+
+        function benchmarkVanilla() {
+            const start = performance.now();
+            for (let i = 0; i < 1000; i++) {
+                const element = document.createElement('div');
+                element.setAttribute('data-test', 'vanilla');
+                element.style.color = 'red';
+                element.innerHTML = '<span>Hello Vanilla</span>';
+                document.body.appendChild(element);
+                element.remove();
+            }
+            const end = performance.now();
+            return end - start;
+        }
+
+        function runBenchmark() {
+            const novaTimes = [];
+            const vanillaTimes = [];
+
+            for (let i = 0; i < 10; i++) {
+                novaTimes.push(benchmarkNova());
+                vanillaTimes.push(benchmarkVanilla());
+            }
+
+            const novaAverage = novaTimes.reduce((a, b) => a + b, 0) / novaTimes.length;
+            const vanillaAverage = vanillaTimes.reduce((a, b) => a + b, 0) / vanillaTimes.length;
+
+            document.getElementById('nova-time').textContent = `Nova Average Time: ${novaAverage.toFixed(2)} ms`;
+            document.getElementById('vanilla-time').textContent = `Vanilla JS Average Time: ${vanillaAverage.toFixed(2)} ms`;
+        }
+
+        window.onload = runBenchmark;
+    </script>
 </head>
 <body>
-  <p></p>
-  <div id="app"></div>
-  <button id="aaa">abajjaja</button>
-  <script type="module">
-    import Kamikaze from './index.js';
-
-    // ボタン要素の選択
-    const button = Kamikaze.select("#aaa");
-    const body = Kamikaze.select("body");
-
-    // ボタンがクリックされたときの処理
-    button.on("click", async (e) => {
-        console.log(e);
-        try {
-            // データを取得してコンソールに表示（公開APIを使用）
-            const res = await Kamikaze.get("https://www.jma.go.jp/bosai/quake/data/list.json");
-            console.log(res);
-            res.forEach(data => {
-                console.log(data.anm);
-                const section = Kamikaze.createElement("section", {}, data.anm);
-                console.log(section);
-                body.in(section);
-            });
-        } catch (error) {
-            console.error("データ取得エラー:", error);
-        }
-    });
-
-  </script>
+    <h1>Nova vs Vanilla JS Benchmark</h1>
+    <p id="nova-time">Nova Average Time: </p>
+    <p id="vanilla-time">Vanilla JS Average Time: </p>
 </body>
 </html>

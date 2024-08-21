@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kamikaze ライブラリデモ</title>
+</head>
+<body>
+  <p></p>
+  <div id="app"></div>
+  <button id="aaa">abajjaja</button>
+  <script type="module">
+    import Kamikaze from './index.js';
+
+    // ボタン要素の選択
+    const button = Kamikaze.select("#aaa");
+    const body = Kamikaze.select("body");
+
+    // ボタンがクリックされたときの処理
+    button.on("click", async (e) => {
+        console.log(e);
+        try {
+            // データを取得してコンソールに表示（公開APIを使用）
+            const res = await Kamikaze.get("https://www.jma.go.jp/bosai/quake/data/list.json");
+            console.log(res);
+            res.forEach(data => {
+                console.log(data.anm);
+                const section = Kamikaze.createElement("section", {}, data.anm);
+                console.log(section);
+                body.in(section);
+            });
+        } catch (error) {
+            console.error("データ取得エラー:", error);
+        }
+    });
+
+  </script>
+</body>
+</html>
